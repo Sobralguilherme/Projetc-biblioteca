@@ -24,7 +24,7 @@ def salvar_dados(dados):
 
 # Função para adicionar um novo livro
 def adicionar_livro():
-    conn = sqlite3.connect('biblioteca.db')
+    conn = conectar_banco()
     cursor = conn.cursor()
     numero_livro = input("Digite o número do livro: ")
     nome = input("Digite o nome do livro: ")
@@ -38,6 +38,7 @@ def adicionar_livro():
     conn.commit()
     conn.close()
     print("Livro adicionado com sucesso.")
+
     
 # Função para listar livros disponíveis
 def listar_livros_disponiveis():
@@ -71,6 +72,7 @@ def marcar_disponibilidade():
     conn.commit()
     conn.close()
     print("Disponibilidade atualizada com sucesso.")
+ 
 
 # Função para exportar dados para Excel
 def exportar_para_excel():
@@ -134,4 +136,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+
 
