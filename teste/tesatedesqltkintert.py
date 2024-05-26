@@ -1,91 +1,57 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun May 26 20:33:05 2024
-
-@author: Guilherme Sobral
-"""
-import PySimpleGUI as sg
-import os
 import sqlite3
+import tkinter as tk
+from tkinter import ttk
 
-diretorio_corrente = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(diretorio_corrente, 'database.db')
+# Função para conectar ao banco de dados
+def conectar_banco():
+    db_path = 'database.db'
+    return sqlite3.connect(db_path)
 
-conexao = sqlite3.connect(db_path)
-query = ('''CREATE TABLE IF NOT EXISTS SUPLEMENTO (LOTE INT, PRODUTO TEXT, FORNECEDOR TEXT)''')
-conexao.execute(query)
+# Função para criar a tabela se ela não existir
+def criar_tabela(conexao):
+    cursor = conexao.cursor()
+    query = '''CREATE TABLE IF NOT EXISTS SUPLEMENTO (LOTE INT, PRODUTO TEXT, FORNECEDOR TEXT)'''
+    cursor.execute(query)
+    conexao.commit()
+
+# Função para preencher a tabela com os dados do banco de dados
+def preencher_tabela(conexao, tree):
+    cursor = conexao.cursor()
+    cursor.execute('''SELECT name FROM sqlite_master WHERE type='table' AND name='SUPLEMENTO';''')
+    if cursor.fetchone() is None:
+        criar_tabela(conexao)
+    cursor.execute("SELECT * FROM SUPLEMENTO")
+    rows = cursor.fetchall()
+    for row in rows:
+        tree.insert('', 'end', values=row)
+
+# Inicialização da interface gráfica
+root = tk.Tk()
+root.title("Sistema de Gerenciamento de Suplementos Alimentares")
+
+frame = ttk.Frame(root, padding="3 3 12 12")
+frame.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+# Criando widgets
+entry_lote = ttk.Entry(frame)
+entry_produto = ttk.Entry(frame)
+combo_fornecedor = ttk.Combobox(frame, values=['Fornecedor 1', 'Fornecedor 2', 'Fornecedor 3'])
+tree = ttk.Treeview(frame, columns=('Lote', 'Produto', 'Fornecedor'), show='headings')
+tree.heading('Lote', text='Lote')
+tree.heading('Produto', text='Produto')
+tree.heading('Fornecedor', text='Fornecedor')
+
+# Conectando widgets com funções
+ttk.Button(frame, text="Preencher Tabela", command=lambda: preencher_tabela(conexao, tree)).grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
+
+# Preenchendo a tabela inicialmente
+conexao = conectar_banco()
+preencher_tabela(conexao, tree)
 conexao.close()
 
-dados=[]
-Titulos=['Lote','Produto','Fornecedor']
-
-layout=[
-        [sg.Text(Titulos[0]), sg.Input(size=5,key=Titulos[0])],
-        [sg.Text(Titulos[1]), sg.Input(size=20,key=Titulos[1])],
-        [sg.Text(Titulos[2]), sg.Combo(['Fornecedor 1','Fornecedor 2','Fornecedor 3'],key=Titulos[2])],
-        [sg.Button('Adicionar'), sg.Button('Editar'), sg.Button('Salvar',disabled=True), sg.Button('Excluir',disabled=True), sg.Exit('Sair')],
-        [sg.Table(dados,Titulos,key='tabela')]
-        ]
-
-window=sg.Window('Sistema de gerenciamento de Suplementos Alimentares',layout)
-
-while True:
-
-    event,values= window.read()
-    print (values)
-    
-    if event == 'Adicionar':
-        dados.append([values[Titulos[0]],values[Titulos[1]],values[Titulos[2]]])
-        window['tabela'].update(values=dados)
-        for i in range(3): # Limpa as caixas de texto
-            window[Titulos[i]].update(value='')
-        
-        
-        conexao = sqlite3.connect(db_path)
-        conexao.execute("INSERT INTO SUPLEMENTO (LOTE, PRODUTO, FORNECEDOR) VALUES (?,?,?)", ([values[Titulos[0]],values[Titulos[1]],values[Titulos[2]]]))
-        conexao.commit()
-        conexao.close()
-
-    if event == 'Editar':
-        if values['tabela']==[]:
-            sg.popup('Nenhuma linha selecionada')
-        else:
-            editarLinha=values['tabela'][0]
-            sg.popup('Alterar ou excluir linha selecionada')
-            for i in range(3):  
-                window[Titulos[i]].update(value=dados[editarLinha][i])
-            window['Salvar'].update(disabled=False)
-            window['Excluir'].update(disabled=False)
-
-
-    if event == 'Salvar':
-        dados[editarLinha]=[values[Titulos[0]],values[Titulos[1]],values[Titulos[2]]]
-        window['tabela'].update(values=dados)
-        for i in range(3):    # Limpa as caixas de texto
-            window[Titulos[i]].update(value='')
-        window['Salvar'].update(disabled=True)
-
-        
-        conexao = sqlite3.connect(db_path)
-        conexao.execute("UPDATE SUPLEMENTO set PRODUTO = ?, FORNECEDOR = ? where LOTE = ?", ([values[Titulos[1]],values[Titulos[2]],values[Titulos[0]]]))
-        conexao.commit()
-        conexao.close()
-    
-    if event == 'Excluir':
-        
-        conexao = sqlite3.connect(db_path)
-        conexao.execute("DELETE FROM SUPLEMENTO WHERE LOTE = ?;", (values[Titulos[0]],))
-        conexao.commit()
-        conexao.close()
-        
-        dados[editarLinha]=[values[Titulos[0]],values[Titulos[1]],values[Titulos[2]]]
-        del dados[values['tabela'][0]]    # Remove a linha selecionada
-        window['tabela'].update(values=dados)
-        for i in range(3):    # Limpa as caixas de texto
-            window[Titulos[i]].update(value='')
-        window['Excluir'].update(disabled=True)
-
-    if event in (sg.WIN_CLOSED, 'Sair'):
-        break
-
-window.close()
+# Execução do loop principal
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+frame.columnconfigure(0, weight=1)
+frame.rowconfigure(0, weight=1)
+root.mainloop()
