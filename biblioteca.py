@@ -3,6 +3,11 @@ import sqlite3
 import tkinter as tk
 from openpyxl import Workbook
 
+# Função para conectar ao banco de dados
+def conectar_banco():
+    conn = sqlite3.connect('biblioteca.db')
+    return conn
+
 # Função para abrir o arquivo CSV
 def abrir_arquivo():
     try:
@@ -19,6 +24,8 @@ def salvar_dados(dados):
 
 # Função para adicionar um novo livro
 def adicionar_livro():
+    conn = sqlite3.connect('biblioteca.db')
+    cursor = conn.cursor()
     numero_livro = input("Digite o número do livro: ")
     nome = input("Digite o nome do livro: ")
     editora = input("Digite a editora: ")
@@ -26,14 +33,12 @@ def adicionar_livro():
     sinopse = input("Digite a sinopse: ")
     disponibilidade = input("O livro está disponível? (sim/não): ")
     detalhes_extras = input("Detalhes extras: ")
-
-    conn = sqlite3.connect('biblioteca.db')
-    cursor = conn.cursor()
     cursor.execute("INSERT INTO livros VALUES (NULL,?,?,?,?,?,?,?)",
                     (numero_livro, nome, editora, autor, sinopse, disponibilidade, detalhes_extras))
     conn.commit()
     conn.close()
-
+    print("Livro adicionado com sucesso.")
+    
 # Função para listar livros disponíveis
 def listar_livros_disponiveis():
     conn = sqlite3.connect('biblioteca.db')
@@ -45,9 +50,9 @@ def listar_livros_disponiveis():
 
 # Função para pesquisar livros
 def pesquisar_livro():
-    livro_pesquisa = input("Digite o número do livro para pesquisar: ")
     conn = sqlite3.connect('biblioteca.db')
     cursor = conn.cursor()
+    livro_pesquisa = input("Digite o número do livro para pesquisar: ")
     cursor.execute("SELECT * FROM livros WHERE numero_livro =?", (livro_pesquisa,))
     livro_encontrado = cursor.fetchone()
     if livro_encontrado:
@@ -58,10 +63,10 @@ def pesquisar_livro():
 
 # Função para marcar a disponibilidade
 def marcar_disponibilidade():
-    numero_livro = input("Digite o número do livro para marcar a disponibilidade: ")
-    nova_disponibilidade = input("Digite 'sim' para disponível ou 'não' para indisponível: ")
     conn = sqlite3.connect('biblioteca.db')
     cursor = conn.cursor()
+    numero_livro = input("Digite o número do livro para marcar a disponibilidade: ")
+    nova_disponibilidade = input("Digite 'sim' para disponível ou 'não' para indisponível: ")
     cursor.execute("UPDATE livros SET disponibilidade =? WHERE numero_livro =?", (nova_disponibilidade, numero_livro))
     conn.commit()
     conn.close()
@@ -71,14 +76,18 @@ def marcar_disponibilidade():
 def exportar_para_excel():
     workbook = Workbook()
     worksheet = workbook.active
-    dados = abrir_arquivo()
+    conn = sqlite3.connect('biblioteca.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM livros")
+    dados = cursor.fetchall()
+    conn.close()
     
     if dados:
         for linha in dados:
             worksheet.append(linha)
     
     workbook.save("livros.xlsx")
-
+    print("Dados exportados para Excel com sucesso.")
 
 # Função principal para iniciar o GUI
 def main():
